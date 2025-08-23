@@ -1,0 +1,405 @@
+/* =============================================== */
+/* CSS Variables for Consistent Theming          */
+/* =============================================== */
+:root {
+    --primary-color: #000000; /* Indigo */
+    --primary-dark-color: #000000;
+    --primary-light-color: #9fa8da;
+    --accent-color: #ff4081; /* Pink */
+    --success-color: #4caf50; /* Green */
+    --error-color: #f44336;   /* Red */
+
+    --text-primary-color: #212121;
+    --text-secondary-color: #757575;
+    --background-color: #f5f5f5;
+    --container-background-color: #ffffff;
+    --border-color: #e0e0e0;
+
+    --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    --border-radius: 8px;
+    --box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+/* =============================================== */
+/* General App Styling & Layout                  */
+/* =============================================== */
+body {
+    font-family: var(--font-family);
+    background-color: var(--background-color);
+    color: var(--text-primary-color);
+    margin: 0;
+    padding: 24px;
+}
+
+.container {
+    max-width: 1400px;
+    margin: 0 auto;
+    background: var(--container-background-color);
+    padding: 24px;
+    border-radius: var(--border-radius);
+    box-shadow: var(--box-shadow);
+}
+
+h1 {
+    text-align: center;
+    color: var(--primary-dark-color);
+    margin-bottom: 24px;
+    font-size: 2.5rem;
+}
+
+/* =============================================== */
+/* Form Styling                                  */
+/* =============================================== */
+.system-info-form {
+    margin-bottom: 32px;
+    padding: 24px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    background-color: #fafafa;
+}
+
+.system-info-form__title {
+    margin-top: 0;
+    color: var(--primary-color);
+    border-bottom: 2px solid var(--primary-light-color);
+    padding-bottom: 8px;
+    font-size: 1.5rem;
+}
+
+.system-info-form__grid--3-col {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr); /* Explicitly 3 columns */
+    gap: 24px; /* Spacing between columns */
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.form-group label {
+    margin-bottom: 8px;
+    font-weight: bold;
+    color: var(--text-secondary-color);
+}
+
+.form-group input[type="number"],
+.form-group input[type="file"] {
+    width: 95%;
+    padding: 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    font-size: 1rem;
+    transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+.form-group input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(63, 81, 181, 0.2);
+}
+
+.system-info-form__button {
+    padding: 12px 24px;
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: bold;
+    transition: background-color 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.system-info-form__button:disabled {
+    background-color: var(--primary-light-color);
+    cursor: not-allowed;
+}
+
+.system-info-form__button:hover:not(:disabled) {
+    background-color: var(--primary-dark-color);
+}
+
+/* =============================================== */
+/* Loading & Error States                        */
+/* =============================================== */
+.loading-spinner {
+    border: 4px solid rgba(0, 0, 0, 0.1);
+    border-left-color: var(--primary-color);
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.error-message {
+    background-color: #ffcdd2; /* Light Red */
+    color: var(--error-color);
+    padding: 16px;
+    border-radius: var(--border-radius);
+    margin: 20px 0;
+    text-align: center;
+    font-weight: bold;
+}
+
+/* =============================================== */
+/* Analysis Report Styling                       */
+/* =============================================== */
+.analysis-report {
+    margin-top: 32px;
+}
+
+.report-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.summary-header h3 {
+    display: flex;
+    align-items: center;
+    gap: 8px; /* Space between title and icon */
+}
+
+.report-header__title {
+    color: var(--primary-dark-color);
+    font-size: 1.8rem;
+}
+
+.export-button {
+    padding: 10px 20px;
+    background-color: var(--success-color);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: bold;
+    transition: background-color 0.3s;
+}
+
+.export-button:hover {
+    background-color: #388e3c; /* Darker Green */
+}
+
+.card {
+    background: var(--container-background-color);
+    padding: 24px;
+    border-radius: var(--border-radius);
+    margin-bottom: 24px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+    border: 1px solid var(--border-color);
+}
+
+.card__title {
+    margin-top: 0;
+    margin-bottom: 16px;
+    font-size: 1.4rem;
+    color: var(--primary-color);
+}
+
+.summary-grid-new {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 24px;
+    padding: 16px 0;
+}
+
+.summary-col {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.summary-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background-color: #f9f9f9;
+    border-radius: 4px;
+    border-left: 4px solid var(--primary-light-color);
+}
+
+.summary-label {
+    font-weight: bold;
+    color: var(--text-secondary-color);
+}
+
+.summary-value {
+    font-weight: bold;
+    color: var(--text-primary-color);
+}
+
+.summary-value .pass {
+    color: var(--success-color);
+}
+
+.summary-value .fail {
+    color: var(--error-color);
+}
+
+.summary-item strong {
+    color: var(--text-primary-color);
+}
+
+.pass {
+    color: var(--success-color);
+    font-weight: bold;
+}
+
+.fail {
+    color: var(--error-color);
+    font-weight: bold;
+}
+
+.recommendations-list {
+    padding-left: 20px;
+    margin: 0;
+}
+
+/* =============================================== */
+/* Chart & Tab Styling                           */
+/* =============================================== */
+.harmonic-charts-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 24px;
+    margin-top: 20px;
+}
+
+.trend-chart-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 24px;
+    margin-top: 20px;
+}
+
+.chart-container {
+    width: 100%;
+}
+
+.date-picker-container {
+    margin-top: 20px;
+    padding: 20px;
+    background-color: #f9f9f9;
+    border-radius: var(--border-radius);
+    border: 1px solid var(--border-color);
+}
+
+.date-time-pickers {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    align-items: center;
+}
+
+.tabs-container {
+    margin-top: 24px;
+    border-bottom: 2px solid var(--border-color);
+}
+
+.tab-button {
+    padding: 12px 24px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-size: 1rem;
+    margin-right: 10px;
+    border-bottom: 3px solid transparent;
+    transition: border-color 0.3s, color 0.3s;
+    color: var(--text-secondary-color);
+}
+
+.tab-button.active {
+    border-bottom-color: var(--primary-color);
+    font-weight: bold;
+    color: var(--primary-color);
+}
+
+.help-icon {
+    cursor: pointer;
+    font-size: 1.2rem;
+    color: var(--text-secondary-color);
+}
+
+.tooltip-content {
+    max-width: 500px; /* Increased max-width for wider tables */
+    line-height: 1.6;
+}
+
+.criteria-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+}
+
+.criteria-table th, .criteria-table td {
+    border: 1px solid var(--border-color);
+    padding: 8px;
+    text-align: left;
+}
+
+.criteria-table th {
+    background-color: #000000;
+    font-weight: bold;
+}
+
+.criteria-table tr.highlight {
+    background-color:  #ff0000;
+    font-weight: bold;
+}
+
+.criteria-table sub {
+    font-size: smaller;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+.help-icon-form {
+  margin-left: 8px;
+  color: #666;
+  cursor: pointer;
+  vertical-align: middle;
+}
+
+/* Styles for PDF Printing */
+.printing-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(255, 255, 255, 0.9);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 10000;
+    color: #000;
+}
+
+.printing-overlay p {
+    font-size: 1.5em;
+    font-weight: bold;
+    margin-top: 20px;
+}
+
