@@ -14,7 +14,7 @@ export const trendChartConfigs = [
     { title: "Unbalance Trend", yAxisLabel: "Unbalance (%)", dataKey: "unbalance", type: 'unbalance' },
 ];
 
-export const API_BASE_URL = 'http://127.0.0.1:8000';
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
 
 export const CURRENT_LIMITS_120V_to_69kV = {
     'r_le_20':       { h_lt_11: 4.0, h_11_17: 2.0, h_17_23: 1.5, h_23_35: 0.6, h_gt_35: 0.3, tdd: 5.0 },
