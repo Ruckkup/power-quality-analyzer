@@ -14,7 +14,7 @@ app = FastAPI()
 # Define allowed origins for CORS
 origins = [
     "http://localhost:5173",
-    "https://68a9f089e9665c8c082ffa74--fanciful-pixie-409215.netlify.app/",
+    https://power-quality-analyzer.netlify.app/,
 ]
 
 app.add_middleware(
