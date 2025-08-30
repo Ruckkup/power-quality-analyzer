@@ -74,36 +74,45 @@ def get_percentile_safe(series, percentile=95):
         return 0.0
     return series.quantile(percentile / 100.0)
 
-def calculate_thd_percentiles(df, thd_type, percentile_95=True, percentile_99=True):
+def calculate_percentiles(df, column_prefix, phases=[1,2,3], column_suffix="", percentile_95=True, percentile_99=True):
     """
-    Calculates the 95th and 99th percentiles for THD (Total Harmonic Distortion) values.
+    Calculates statistical percentiles for specified data columns.
+
+    This function calculates the daily 99th percentile from the original data,
+    and the 95th and 99th percentiles from data resampled into 10-minute intervals.
 
     Args:
-        df: The DataFrame containing the THD data.
-        thd_type: The type of THD to calculate ('U' for voltage, 'A' for current).
-        percentile_95: Whether to calculate the 95th percentile (default is True).
-        percentile_99: Whether to calculate the 99th percentile (default is True).
+        df (pd.DataFrame): The DataFrame containing the time-indexed data.
+        column_prefix (str): The prefix for the column names to be processed (e.g., 'U', 'A', 'TDD').
+        phases (list): A list of phase numbers to process (e.g., [1, 2, 3]).
+        column_suffix (str): The suffix for the column names (e.g., ' THD', '').
+        percentile_95 (bool): Whether to calculate the 95th percentile.
+        percentile_99 (bool): Whether to calculate the 99th percentile.
 
     Returns:
-        A dictionary containing the calculated percentiles.
+        dict: A dictionary containing the calculated percentile values.
     """
     results = {}
-    phases = [1, 2, 3]
-    thd_cols = [f'{thd_type}{p} THD' for p in phases]
+    cols = [f'{column_prefix}{p}{column_suffix}' for p in phases]
 
-    for col in thd_cols:
+    for col in cols:
         if col in df.columns:
             series = to_numeric_safe(df[col])
             if not series.empty:
                 if percentile_99:
-                    results[f'{col}_99th_3s'] = get_percentile_safe(series, 99)
-                
+                    # Calculate daily 99th percentile from all data points for each day
+                    daily_99th = series.groupby(series.index.date).apply(lambda x: get_percentile_safe(x, 99))
+                    results[f'{col}_99th_3s'] = daily_99th.max() if not daily_99th.empty else 0.0
+
+                # Resample to 10-minute intervals, taking the 95th percentile of values in each interval
                 resampled_10min = series.resample('10min').apply(lambda x: get_percentile_safe(x, 95) if not x.empty else np.nan).dropna()
 
                 if not resampled_10min.empty:
                     if percentile_95:
+                        # 95th percentile of the 10-minute data
                         results[f'{col}_95th_10min'] = get_percentile_safe(resampled_10min, 95)
                     if percentile_99:
+                        # 99th percentile of the 10-minute data
                         results[f'{col}_99th_10min'] = get_percentile_safe(resampled_10min, 99)
     return results
 
@@ -234,11 +243,32 @@ def analyze_full_data(dfs, nominal_voltage, isc, il):
     clean_df.set_index('Timestamp', inplace=True)
     clean_df = clean_df[~clean_df.index.duplicated(keep='first')]
 
-    voltage_thd_percentiles = calculate_thd_percentiles(clean_df, 'U')
-    current_thd_percentiles = calculate_thd_percentiles(clean_df, 'A')
+    # Calculate TDD for each phase and add to DataFrame
+    if il > 0:
+        for p in [1, 2, 3]:
+            thdi_series = to_numeric_safe(clean_df.get(f'A{p} THD', pd.Series([])))
+            current_rms_series = to_numeric_safe(clean_df.get(f'A{p} RMS', pd.Series([])))
+            
+            thdi_per_unit = thdi_series / 100.0
+            # Calculate fundamental current I1
+            i1_series = current_rms_series / np.sqrt(1 + thdi_per_unit**2)
+            # Calculate total harmonic current Ih_rms
+            ih_rms_series = i1_series * thdi_per_unit
+            
+            # Calculate TDD = (Ih_rms / Il) * 100
+            tdd_series = (ih_rms_series / il) * 100.0
+            clean_df[f'TDD{p}'] = tdd_series
+    else:
+        for p in [1, 2, 3]:
+            clean_df[f'TDD{p}'] = 0.0
+
+    voltage_thd_percentiles = calculate_percentiles(clean_df, 'U', column_suffix=' THD')
+    current_thd_percentiles = calculate_percentiles(clean_df, 'A', column_suffix=' THD')
+    tdd_percentiles = calculate_percentiles(clean_df, 'TDD', column_suffix='')
 
     thdv_overall = voltage_thd_percentiles.get('U1 THD_95th_10min', 0)
     thdi_overall = current_thd_percentiles.get('A1 THD_95th_10min', 0)
+    tdd_overall = tdd_percentiles.get('TDD1_95th_10min', 0)
 
     summary_stats = {
         'u1_rms_avg': nan_to_zero(to_numeric_safe(clean_df.get('U1 RMS', pd.Series([]))).mean()),
@@ -268,14 +298,6 @@ def analyze_full_data(dfs, nominal_voltage, isc, il):
     power_factors = active_power / apparent_power.where(apparent_power != 0, np.nan)
     summary_stats['power_factor_avg'] = nan_to_zero(power_factors.mean())
 
-    tdd = 0.0
-    thdi_for_tdd = current_thd_percentiles.get('A1 THD_95th_10min', 0)
-    current_rms_avg = summary_stats['a1_rms_avg']
-    if thdi_for_tdd > 0 and current_rms_avg > 0 and il > 0:
-        thdi_per_unit = thdi_for_tdd / 100.0
-        Ih_rms = (current_rms_avg / np.sqrt(1 + thdi_per_unit**2)) * thdi_per_unit
-        tdd = (Ih_rms / il) * 100.0 if il > 0 else 0.0
-
     failing_points = {}
     voltage_compliance = "Pass"
     v_limit_table = VOLTAGE_LIMITS.get("V_gt_161kV")
@@ -301,7 +323,7 @@ def analyze_full_data(dfs, nominal_voltage, isc, il):
 
             if thdv_99th_3s > (v_limit_table["thd"] * 1.5):
                 voltage_compliance = "Fail"
-                add_failing_point("Voltage THD", "99th Percentile (3s) > 1.5x limit", phase=f"U{phase}")
+                add_failing_point("Voltage THD", "Daily 99th Percentile (3s) > 1.5x limit", phase=f"U{phase}")
             
             if thdv_95th_10min > v_limit_table["thd"]:
                 voltage_compliance = "Fail"
@@ -329,26 +351,23 @@ def analyze_full_data(dfs, nominal_voltage, isc, il):
                 break
     
     if c_limit_row:
-        if tdd > c_limit_row["tdd"]:
+        # Compare the 95th percentile of the 10-min TDD values against the limit
+        if tdd_overall > c_limit_row["tdd"]:
             current_compliance = "Fail"
-            add_failing_point("Current TDD", "Overall TDD > limit")
+            add_failing_point("Current TDD", "95th Percentile (10min) > limit")
 
         for phase in [1, 2, 3]:
-            thdi_99th_3s = current_thd_percentiles.get(f'A{phase} THD_99th_3s', 0)
-            thdi_95th_10min = current_thd_percentiles.get(f'A{phase} THD_95th_10min', 0)
-            thdi_99th_10min = current_thd_percentiles.get(f'A{phase} THD_99th_10min', 0)
+            # Short-term TDD checks
+            tdd_99th_3s = tdd_percentiles.get(f'TDD{phase}_99th_3s', 0)
+            if tdd_99th_3s > (c_limit_row["tdd"] * 2.0):
+                current_compliance = "Fail"
+                add_failing_point("Current TDD", "Daily 99th Percentile (3s) > 2.0x TDD limit", phase=f"A{phase}")
 
-            if thdi_99th_3s > (c_limit_row["tdd"] * 2):
+            # Very-short-term TDD checks (10-min, 99th percentile)
+            tdd_99th_10min = tdd_percentiles.get(f'TDD{phase}_99th_10min', 0)
+            if tdd_99th_10min > (c_limit_row["tdd"] * 1.5):
                 current_compliance = "Fail"
-                add_failing_point("Current THD", "99th Percentile (3s) > 1.5x TDD limit", phase=f"A{phase}")
-            
-            if thdi_95th_10min > c_limit_row["tdd"]:
-                current_compliance = "Fail"
-                add_failing_point("Current THD", "95th Percentile (10min) > TDD limit", phase=f"A{phase}")
-
-            if thdi_99th_10min > (c_limit_row["tdd"] * 1.5):
-                current_compliance = "Fail"
-                add_failing_point("Current THD", "99th Percentile (10min) > 1.5x TDD limit", phase=f"A{phase}")
+                add_failing_point("Current TDD", "99th Percentile (10min) > 1.5x TDD limit", phase=f"A{phase}")
 
         ah_individual_percentiles = calculate_individual_harmonic_percentiles(df_ah_harmonics, 'A', 95)
         for h in range(2, 51):
@@ -429,7 +448,7 @@ def analyze_full_data(dfs, nominal_voltage, isc, il):
     
     analysis_results = {
         "thdv_percent": nan_to_zero(thdv_overall),
-        "tdd_percent": nan_to_zero(tdd),
+        "tdd_percent": nan_to_zero(tdd_overall),
         "summary_stats": summary_stats,
         "voltage_compliance": voltage_compliance,
         "current_compliance": current_compliance,
